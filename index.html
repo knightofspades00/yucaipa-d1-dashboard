@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Yucaipa City Council District 1 — Map & Data Dashboard</title>
+
+<link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css" />
+<!-- html2pdf and Chart.js must load BEFORE the ArcGIS SDK,
+     otherwise Dojo's AMD `define` swallows them and they never attach to window. -->
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.2/dist/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://js.arcgis.com/4.30/"></script>
+
+<style>
+  :root {
+    --d1: #d62828;
+    --d2: #f7b801;
+    --d3: #1d7874;
+    --d4: #6a4c93;
+    --d5: #2a6f97;
+    --ink: #14213d;
+    --muted: #5c6776;
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --line: #e3e6ec;
+    --rep: #c81d25;
+    --dem: #1f6fb2;
+    --npp: #6c757d;
+    --other: #b08968;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { background: var(--ink); color: #fff; padding: 18px 24px; }
+  header h1 { margin: 0; font-size: 20px; letter-spacing: .2px; }
+  header p { margin: 4px 0 0; color: #a9b3c5; font-size: 13px; }
+  main { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(320px,1fr);
+    gap: 16px; padding: 16px; max-width: 1600px; margin: 0 auto; }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+  .map-card, .panel { background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; overflow: hidden; }
+  #viewDiv { height: 620px; width: 100%; }
+  .map-legend { display: flex; gap: 10px; flex-wrap: wrap; padding: 10px 14px;
+    border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  .swatch { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+  .panel { padding: 14px 16px 18px; }
+  .panel h2 { font-size: 15px; margin: 0 0 10px; color: var(--ink); letter-spacing: .3px; }
+  .panel + .panel { margin-top: 16px; }
+  .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi { background: #fafbfd; border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; }
+  .kpi .label { font-size: 11px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .6px; }
+  .kpi .value { font-size: 22px; font-weight: 700; margin-top: 4px; color: var(--ink); }
+  .kpi .delta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .member-card { display: flex; align-items: center; gap: 12px; padding: 12px;
+    background: linear-gradient(180deg, #fff5f5, #fff); border: 1px solid #f6caca;
+    border-left: 4px solid var(--d1); border-radius: 10px; }
+  .member-card .avatar { width: 44px; height: 44px; border-radius: 50%;
+    background: var(--d1); color: #fff; display: grid; place-items: center;
+    font-weight: 700; font-size: 18px; }
+  .member-card .meta { font-size: 12px; color: var(--muted); }
+  .member-card .name { font-weight: 600; font-size: 14px; color: var(--ink); }
+  .member-card a { color: var(--ink); }
+  table.compare { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.compare th, table.compare td { padding: 6px 8px; border-bottom: 1px solid var(--line);
+    text-align: right; }
+  table.compare th:first-child, table.compare td:first-child { text-align: left; color: var(--muted); }
+  table.compare tr.active td { background: #fff5f5; font-weight: 600; color: var(--ink); }
+  .links { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+  .links a { color: var(--ink); }
+  .footnote { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 10px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+    background: var(--d1); color: #fff; margin-left: 6px; vertical-align: middle; }
+  .switch-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .switch-row button { flex: 1; min-width: 56px; padding: 6px 8px; border: 1px solid var(--line);
+    background: #fff; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }
+  .switch-row button.active { background: var(--d1); color: #fff; border-color: var(--d1); }
+  .chart-wrap { position: relative; height: 250px; }
+  iframe.lookup { width: 100%; height: 420px; border: 0; border-radius: 8px;
+    background: #fff; border: 1px solid var(--line); }
+  .privacy-note { background: #fff8e1; border: 1px solid #ffe082; padding: 10px 12px;
+    border-radius: 8px; font-size: 12.5px; color: #5d4037; }
+  .map-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    padding: 10px 14px; border-bottom: 1px solid var(--line); background: #fafbfd; }
+  .map-toolbar label { font-size: 12px; color: var(--muted); display: flex;
+    align-items: center; gap: 6px; }
+  .map-toolbar select, .map-toolbar button { font-size: 12.5px; padding: 5px 10px;
+    border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink);
+    cursor: pointer; }
+  .map-toolbar button.primary { background: var(--ink); color: #fff; border-color: var(--ink);
+    font-weight: 600; }
+  .map-toolbar button.primary:hover { background: #1a2a4f; }
+  .map-toolbar input[type=checkbox] { accent-color: var(--ink); }
+  .acs-legend { padding: 8px 14px; border-top: 1px solid var(--line); font-size: 11.5px;
+    color: var(--muted); display: none; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .acs-legend.show { display: flex; }
+  .acs-legend .swatch-row { display: flex; gap: 0; }
+  .acs-legend .swatch-row i { width: 26px; height: 12px; display: inline-block; }
+  @media print {
+    @page { size: letter landscape; margin: 0.4in; }
+    header { background: #fff !important; color: var(--ink) !important;
+      border-bottom: 2px solid var(--ink); padding: 8px 0; }
+    header p, header h1 { color: var(--ink) !important; }
+    main { display: block; padding: 0; max-width: none; }
+    iframe.lookup, .map-toolbar { display: none !important; }
+    .map-card, .panel { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid;
+      margin-bottom: 10px; }
+    #viewDiv { height: 360px; }
+    .links a { color: var(--ink) !important; }
+    button { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Yucaipa City Council District 1 <span class="badge" id="hdrBadge">Bob Miller</span></h1>
+  <p>Boundary map · Registered voters by party · Address lookup · Data as of <span id="hdrDate">…</span></p>
+</header>
+
+<main>
+  <section>
+    <div class="map-card">
+      <div class="map-toolbar">
+        <label><input type="checkbox" id="togglePrecincts" />Show voting precincts</label>
+        <label>ACS demographic overlay:
+          <select id="acsSelect">
+            <option value="">— none —</option>
+            <option value="income">Median household income</option>
+            <option value="age">Median age</option>
+            <option value="hispanic">% Hispanic / Latino</option>
+            <option value="bachelors">% Bachelor's degree or higher</option>
+            <option value="poverty">% Below poverty line</option>
+          </select>
+        </label>
+        <button id="btnPdf" class="primary" type="button" style="margin-left:auto">Download PDF</button>
+      </div>
+      <div id="viewDiv"></div>
+      <div class="acs-legend" id="acsLegend"></div>
+      <div class="map-legend">
+        <span class="swatch"><i style="background:var(--d1)"></i>District 1</span>
+        <span class="swatch"><i style="background:var(--d2)"></i>District 2</span>
+        <span class="swatch"><i style="background:var(--d3)"></i>District 3</span>
+        <span class="swatch"><i style="background:var(--d4)"></i>District 4</span>
+        <span class="swatch"><i style="background:var(--d5)"></i>District 5</span>
+        <span style="margin-left:auto;color:var(--muted)">Click a district to focus · drag to pan · scroll to zoom</span>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>Address lookup — “Is this address in District 1?”</h2>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 10px">
+        The city already publishes an official lookup. Either type an address in the map's search
+        box above (top-left of the map) and the selected district will be highlighted, or use the
+        city's tool below for a definitive answer.
+      </p>
+      <iframe class="lookup" title="City of Yucaipa — Find My District"
+        src="https://yucaipa.maps.arcgis.com/apps/instant/lookup/index.html?appid=e9ee0957ad4c4a39aed74fafd35051d5"></iframe>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>Live San Bernardino County voter registration dashboard</h2>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 10px">
+        Filter by party, district, and date range — pulled live from the County Registrar.
+        The aggregates on the right of this dashboard are a frozen weekly snapshot; this
+        embed is always current.
+      </p>
+      <iframe class="lookup" style="height:560px"
+        title="SBC Voter Registration Dashboard"
+        src="https://elections.sbcounty.gov/voterregistration/dashboard/"></iframe>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>What is — and isn't — publicly available</h2>
+      <div class="privacy-note">
+        <strong>Address-level voter records are not public.</strong> Individual voter registration
+        and party affiliation are held by the San Bernardino County Registrar of Voters under
+        California Elections Code §2194 and are released only to qualifying campaigns, parties,
+        scholars, and journalists for limited uses. This dashboard therefore shows
+        <em>aggregated</em> totals by district, which is the highest resolution legally available
+        to the public.
+      </div>
+      <div class="footnote">
+        Aggregates here come from the County's <em>Weekly Report of Registration</em>
+        (jurisdiction-level party breakdown, updated weekly) and the <em>Precinct &amp; District
+        Data Export</em> (precinct-level totals). Both files refresh in <code>data/</code> when
+        you run <code>refresh.ps1</code>.
+      </div>
+    </div>
+  </section>
+
+  <aside>
+    <div class="panel">
+      <h2 style="display:flex;align-items:center;justify-content:space-between">
+        <span id="focusTitle">District 1 — Snapshot</span>
+        <span style="font-size:11px;color:var(--muted);font-weight:400" id="hdrDate2"></span>
+      </h2>
+
+      <div class="switch-row" id="switchRow"></div>
+
+      <div class="member-card" id="memberCard">
+        <div class="avatar" id="avatar">BM</div>
+        <div>
+          <div class="name" id="memberName">Bob Miller</div>
+          <div class="meta" id="memberTitle">Councilmember</div>
+          <div class="meta" id="memberContact">
+            <a href="mailto:bmiller@yucaipa.gov">bmiller@yucaipa.gov</a> · 909-797-2489 ext. 501
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-grid" style="margin-top:12px">
+        <div class="kpi"><div class="label">Registered voters</div>
+          <div class="value" id="kpiReg">—</div>
+          <div class="delta" id="kpiRegDelta">share of city</div></div>
+        <div class="kpi"><div class="label">Republican</div>
+          <div class="value" id="kpiRep" style="color:var(--rep)">—</div>
+          <div class="delta" id="kpiRepDelta">vs county avg</div></div>
+        <div class="kpi"><div class="label">Democratic</div>
+          <div class="value" id="kpiDem" style="color:var(--dem)">—</div>
+          <div class="delta" id="kpiDemDelta">vs county avg</div></div>
+        <div class="kpi"><div class="label">No Party Pref</div>
+          <div class="value" id="kpiNpp" style="color:var(--npp)">—</div>
+          <div class="delta" id="kpiNppDelta">vs county avg</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Party breakdown vs San Bernardino County</h2>
+      <div class="chart-wrap"><canvas id="partyChart"></canvas></div>
+      <div class="footnote">Each bar = % of registered voters in the focused district. Grey
+        bar behind = San Bernardino County baseline.</div>
+    </div>
+
+    <div class="panel">
+      <h2>All five Yucaipa districts</h2>
+      <table class="compare" id="compareTable">
+        <thead><tr><th>District</th><th>Voters</th><th>Rep %</th><th>Dem %</th><th>NPP %</th></tr></thead>
+        <tbody></tbody>
+        <tfoot><tr><th>City total</th><th id="cityVoters"></th><th id="cityRep"></th>
+          <th id="cityDem"></th><th id="cityNpp"></th></tr></tfoot>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Live & official sources</h2>
+      <div class="links">
+        <a href="https://elections.sbcounty.gov/voterregistration/dashboard/" target="_blank">
+          ▸ SB County Voter Registration Dashboard (live, filterable)</a>
+        <a href="https://www.sbcounty.gov/uploads/rov/DistrictSummary.pdf" target="_blank">
+          ▸ Weekly Report of Registration (PDF)</a>
+        <a href="https://uploads.rov.sbcounty.gov/ROV/PrecinctDistrictExport.zip" target="_blank">
+          ▸ Precinct &amp; District Data Export (ZIP, raw)</a>
+        <a href="https://yucaipa.gov/yucaipa-redistricting/" target="_blank">
+          ▸ City of Yucaipa — District boundary &amp; redistricting page</a>
+        <a href="https://yucaipa.gov/wp-content/uploads/redistricting/2016_councilselectedmap.pdf" target="_blank">
+          ▸ Official 2016 District Boundary Map (PDF)</a>
+        <a href="https://open.sbcounty.gov/maps/sbcounty::city-of-yucaipa-city-council-districts" target="_blank">
+          ▸ District boundary feature service (SB County Open Data)</a>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<script>
+const STATE = { focus: 1, data: null, chart: null };
+
+const DISTRICT_COLORS = {1:'#d62828', 2:'#f7b801', 3:'#1d7874', 4:'#6a4c93', 5:'#2a6f97'};
+const PARTY_COLORS = {
+  'Republican':'#c81d25', 'Democratic':'#1f6fb2', 'No Party Preference':'#6c757d',
+  'American Independent':'#a3640c', 'Libertarian':'#f4a261',
+  'Other':'#b08968', 'Peace and Freedom':'#7b2cbf', 'Green':'#2a9d8f'
+};
+const fmt = n => n == null ? '—' : n.toLocaleString();
+const pct = (n, total) => total ? (n/total*100) : 0;
+const pctFmt = (n, total) => total ? (n/total*100).toFixed(1) + '%' : '—';
+
+require([
+  "esri/Map",
+  "esri/views/MapView",
+  "esri/layers/FeatureLayer",
+  "esri/widgets/Search",
+  "esri/widgets/Home",
+  "esri/widgets/Expand",
+  "esri/widgets/Legend",
+  "esri/Graphic",
+  "esri/symbols/SimpleFillSymbol"
+], function(Map, MapView, FeatureLayer, Search, Home, Expand, Legend, Graphic, SimpleFillSymbol) {
+
+  const FS_URL = "https://services.arcgis.com/aA3snZwJfFkVyDuP/arcgis/rest/services/City_of_Yucaipa_City_Council_Districts/FeatureServer/0";
+
+  const renderer = {
+    type: "unique-value",
+    field: "NAME",
+    defaultSymbol: { type: "simple-fill",
+      color: [200,200,200,0.18], outline: { color: [80,80,80,0.5], width: 1 } },
+    uniqueValueInfos: [1,2,3,4,5].map(i => ({
+      value: `City of Yucaipa, City Council, District ${i}`,
+      symbol: {
+        type: "simple-fill",
+        color: [...hexToRgb(DISTRICT_COLORS[i]), i === 1 ? 0.55 : 0.30],
+        outline: { color: DISTRICT_COLORS[i], width: i === 1 ? 2.4 : 1.4 }
+      },
+      label: `District ${i}`
+    }))
+  };
+
+  const layer = new FeatureLayer({
+    url: FS_URL,
+    outFields: ["NAME","OBJECTID"],
+    renderer,
+    popupTemplate: {
+      title: "{NAME}",
+      content: "Click the panel on the right to see voter aggregates for this district."
+    },
+    definitionExpression: "NAME LIKE 'City of Yucaipa, City Council, District%'"
+  });
+
+  const map = new Map({ basemap: "osm", layers: [layer] });
+  const view = new MapView({
+    container: "viewDiv",
+    map,
+    center: [-117.043, 34.034],
+    zoom: 12
+  });
+  window._view = view;
+  view.when(() => console.log("MapView ready"),
+            err => console.error("MapView error:", err && err.message, err));
+
+  const search = new Search({
+    view,
+    sources: [{ placeholder: "Find an address in Yucaipa…" }],
+    includeDefaultSources: true,
+    locationEnabled: false,
+    popupEnabled: false
+  });
+  view.ui.add(search, { position: "top-left", index: 0 });
+  view.ui.add(new Home({ view }), "top-left");
+  view.ui.add(new Expand({
+    view, expanded: false,
+    content: new Legend({ view })
+  }), "top-right");
+
+  search.on("select-result", async (e) => {
+    if (!e.result) return;
+    const pt = e.result.feature.geometry;
+    const q = layer.createQuery();
+    q.geometry = pt; q.spatialRelationship = "intersects"; q.outFields = ["NAME"];
+    const r = await layer.queryFeatures(q);
+    const hit = r.features.find(f => /District (\d)/.test(f.attributes.NAME));
+    if (hit) {
+      const d = parseInt(hit.attributes.NAME.match(/District (\d)/)[1], 10);
+      setFocus(d);
+    }
+  });
+
+  view.on("click", async (event) => {
+    const hit = await view.hitTest(event);
+    const g = hit.results.find(r => r.graphic && r.graphic.layer === layer);
+    if (g) {
+      const m = g.graphic.attributes.NAME && g.graphic.attributes.NAME.match(/District (\d)/);
+      if (m) setFocus(parseInt(m[1], 10));
+    }
+  });
+
+  // ---- Precinct overlay (toggle) ----
+  let precinctLayer = null;
+  document.getElementById("togglePrecincts").addEventListener("change", (e) => {
+    if (e.target.checked) {
+      if (!precinctLayer) {
+        precinctLayer = new FeatureLayer({
+          url: "https://services.arcgis.com/aA3snZwJfFkVyDuP/arcgis/rest/services/Registrar_of_Voters_Precincts/FeatureServer/0",
+          outFields: ["PRECINCT","ABRV_NAME"],
+          renderer: {
+            type: "simple",
+            symbol: { type: "simple-fill", color: [0,0,0,0],
+              outline: { color: [40,40,40,0.55], width: 0.6, style: "dash" } }
+          },
+          popupTemplate: { title: "Precinct {PRECINCT}", content: "Abbrev: {ABRV_NAME}" },
+          minScale: 100000
+        });
+        map.add(precinctLayer, 1);
+      } else { precinctLayer.visible = true; }
+    } else if (precinctLayer) {
+      precinctLayer.visible = false;
+    }
+  });
+
+  // ---- ACS demographic overlay (dropdown) ----
+  // Each variant maps to a public Esri Living Atlas feature service (multi-scale tract/county/state).
+  // We pick the tract sublayer (index 2) for council-district context.
+  const ACS = {
+    income: {
+      itemId: "45ede6d6ff7e4cbbbffa60d34227e462",
+      sublayer: 2,
+      field: "B19013_001E",
+      label: "Median household income (USD)",
+      stops: [[40000,"#fff5eb"],[60000,"#fdd0a2"],[80000,"#fdae6b"],[100000,"#e6550d"],[140000,"#a63603"]],
+      fmt: v => "$" + Math.round(v).toLocaleString()
+    },
+    age: {
+      itemId: "d227d6a4ee3e4d2d87eb9843ee14dd87",
+      sublayer: 2,
+      field: "B01002_001E",
+      label: "Median age (years)",
+      stops: [[28,"#edf8fb"],[35,"#b2e2e2"],[42,"#66c2a4"],[48,"#2ca25f"],[56,"#006d2c"]],
+      fmt: v => v.toFixed(1) + " yrs"
+    },
+    hispanic: {
+      itemId: "23ab8028f1784de4b0810104cd5d1c8f",
+      sublayer: 2,
+      field: "B03002_012E",
+      denom: "B03002_001E",
+      label: "% Hispanic / Latino population",
+      stops: [[10,"#f7f4f9"],[25,"#d4b9da"],[40,"#df65b0"],[60,"#dd1c77"],[80,"#980043"]],
+      fmt: v => v.toFixed(1) + "%"
+    },
+    bachelors: {
+      itemId: "84e3022a376e41feb4dd8addf25835a3",
+      sublayer: 2,
+      label: "% adults with a bachelor's degree or higher",
+      computed: "bachelors",
+      stops: [[10,"#f7fcf5"],[20,"#c7e9c0"],[30,"#74c476"],[45,"#238b45"],[60,"#00441b"]],
+      fmt: v => v.toFixed(1) + "%"
+    },
+    poverty: {
+      itemId: "0e468b75bca545ee8dc4b039cbb5aff6",
+      sublayer: 2,
+      field: "B17001_002E",
+      denom: "B17001_001E",
+      label: "% below the federal poverty line",
+      stops: [[5,"#fff7ec"],[10,"#fdd49e"],[20,"#fc8d59"],[30,"#d7301f"],[45,"#7f0000"]],
+      fmt: v => v.toFixed(1) + "%"
+    }
+  };
+
+  let acsLayer = null;
+  const acsLegend = document.getElementById("acsLegend");
+  document.getElementById("acsSelect").addEventListener("change", async (e) => {
+    const key = e.target.value;
+    if (acsLayer) { map.remove(acsLayer); acsLayer = null; }
+    acsLegend.classList.remove("show");
+    acsLegend.innerHTML = "";
+    if (!key) return;
+    const cfg = ACS[key];
+
+    let renderer;
+    if (cfg.computed === "bachelors") {
+      // % Bachelor's or higher = (B15003_022+023+024+025) / B15003_001
+      renderer = {
+        type: "class-breaks",
+        valueExpression:
+          "var t = $feature.B15003_001E;" +
+          "IIf(t>0,(($feature.B15003_022E+$feature.B15003_023E+$feature.B15003_024E+$feature.B15003_025E)/t)*100,0)",
+        classBreakInfos: cfg.stops.map((s, i) => ({
+          minValue: i === 0 ? -Infinity : cfg.stops[i-1][0],
+          maxValue: s[0],
+          symbol: { type: "simple-fill", color: hexToRgba(s[1], 0.7),
+            outline: { color: [255,255,255,0.6], width: 0.4 } },
+          label: (i === 0 ? "< " : (cfg.stops[i-1][0] + " – ")) + s[0] + "%"
+        }))
+      };
+    } else if (cfg.denom) {
+      renderer = {
+        type: "class-breaks",
+        valueExpression: `IIf($feature.${cfg.denom}>0,($feature.${cfg.field}/$feature.${cfg.denom})*100,0)`,
+        classBreakInfos: cfg.stops.map((s, i) => ({
+          minValue: i === 0 ? -Infinity : cfg.stops[i-1][0],
+          maxValue: s[0],
+          symbol: { type: "simple-fill", color: hexToRgba(s[1], 0.7),
+            outline: { color: [255,255,255,0.6], width: 0.4 } },
+          label: (i === 0 ? "< " : (cfg.stops[i-1][0] + " – ")) + s[0] + "%"
+        }))
+      };
+    } else {
+      renderer = {
+        type: "class-breaks",
+        field: cfg.field,
+        classBreakInfos: cfg.stops.map((s, i) => ({
+          minValue: i === 0 ? -Infinity : cfg.stops[i-1][0],
+          maxValue: s[0],
+          symbol: { type: "simple-fill", color: hexToRgba(s[1], 0.7),
+            outline: { color: [255,255,255,0.6], width: 0.4 } },
+          label: cfg.fmt(s[0]) + " or less"
+        }))
+      };
+    }
+
+    acsLayer = new FeatureLayer({
+      portalItem: { id: cfg.itemId },
+      layerId: cfg.sublayer,
+      renderer,
+      opacity: 0.65,
+      title: cfg.label
+    });
+    map.add(acsLayer, 0);
+
+    acsLegend.classList.add("show");
+    acsLegend.innerHTML =
+      `<strong style="color:var(--ink)">${cfg.label}:</strong>` +
+      `<div class="swatch-row">` +
+      cfg.stops.map(s => `<i style="background:${s[1]};border:1px solid #00000010" title="${cfg.fmt(s[0])}"></i>`).join("") +
+      `</div>` +
+      `<span>${cfg.fmt(cfg.stops[0][0])} → ${cfg.fmt(cfg.stops[cfg.stops.length-1][0])}+</span>` +
+      `<span style="margin-left:auto">Source: US Census ACS via Esri Living Atlas</span>`;
+  });
+
+  // expose for PDF export
+  window._mapView = view;
+});
+
+// ---- PDF export ----
+document.addEventListener("click", async (e) => {
+  if (e.target.id !== "btnPdf") return;
+  const btn = e.target;
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = "Preparing…";
+  try {
+    let snapshotUrl = null;
+    const view = window._mapView;
+    if (view && view.ready) {
+      const shot = await view.takeScreenshot({ format: "png", quality: 95 });
+      snapshotUrl = shot.dataUrl;
+    }
+    const cloneSrc = document.querySelector("main");
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText = "background:#fff;padding:18px;width:1100px;font-family:system-ui,sans-serif";
+    const heading = document.createElement("div");
+    const d = STATE.data.districts[STATE.focus];
+    heading.innerHTML =
+      `<h1 style="margin:0 0 4px;font-size:22px;color:#14213d">` +
+        `Yucaipa City Council District ${STATE.focus} — ${d.councilMember}</h1>` +
+      `<p style="margin:0 0 12px;color:#5c6776;font-size:12px">` +
+        `Registered voters by party · boundary map · data as of ${STATE.data.reportDate} · ` +
+        `printed ${new Date().toLocaleDateString()}</p>`;
+    wrapper.appendChild(heading);
+    const clone = cloneSrc.cloneNode(true);
+    if (snapshotUrl) {
+      const viewClone = clone.querySelector("#viewDiv");
+      if (viewClone) {
+        viewClone.innerHTML = `<img src="${snapshotUrl}" style="width:100%;display:block">`;
+        viewClone.style.height = "auto";
+      }
+    }
+    clone.querySelectorAll("iframe.lookup, .map-toolbar, button").forEach(el => el.remove());
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+    await html2pdf().set({
+      margin: 8, filename: `Yucaipa_D${STATE.focus}_dashboard_${STATE.data.reportDate}.pdf`,
+      image: { type: "jpeg", quality: 0.92 },
+      html2canvas: { scale: 1.6, useCORS: true, backgroundColor: "#ffffff" },
+      jsPDF: { unit: "pt", format: "letter", orientation: "landscape" }
+    }).from(wrapper).save();
+    document.body.removeChild(wrapper);
+  } catch (err) {
+    console.error("PDF export failed:", err);
+    alert("PDF export failed: " + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+});
+
+async function loadData() {
+  const res = await fetch("data/d1_stats.json");
+  STATE.data = await res.json();
+  document.getElementById("hdrDate").textContent = STATE.data.reportDate;
+  document.getElementById("hdrDate2").textContent = "as of " + STATE.data.reportDate;
+  buildSwitcher();
+  fillCityTotals();
+  setFocus(1);
+}
+
+function buildSwitcher() {
+  const row = document.getElementById("switchRow");
+  row.innerHTML = "";
+  [1,2,3,4,5].forEach(i => {
+    const b = document.createElement("button");
+    b.textContent = "D" + i;
+    b.dataset.d = i;
+    b.style.borderColor = DISTRICT_COLORS[i];
+    b.onclick = () => setFocus(i);
+    row.appendChild(b);
+  });
+}
+
+function fillCityTotals() {
+  const c = STATE.data.cityTotal;
+  document.getElementById("cityVoters").textContent = fmt(c.registered);
+  document.getElementById("cityRep").textContent = pctFmt(c.parties.Republican, c.registered);
+  document.getElementById("cityDem").textContent = pctFmt(c.parties.Democratic, c.registered);
+  document.getElementById("cityNpp").textContent = pctFmt(c.parties["No Party Preference"], c.registered);
+
+  const tb = document.querySelector("#compareTable tbody");
+  tb.innerHTML = "";
+  [1,2,3,4,5].forEach(i => {
+    const d = STATE.data.districts[i];
+    const tr = document.createElement("tr");
+    tr.dataset.d = i;
+    tr.innerHTML = `<td>District ${i}</td>
+      <td>${fmt(d.registered)}</td>
+      <td>${pctFmt(d.parties.Republican, d.registered)}</td>
+      <td>${pctFmt(d.parties.Democratic, d.registered)}</td>
+      <td>${pctFmt(d.parties["No Party Preference"], d.registered)}</td>`;
+    tr.onclick = () => setFocus(i);
+    tb.appendChild(tr);
+  });
+}
+
+function setFocus(i) {
+  STATE.focus = i;
+  const d = STATE.data.districts[i];
+  const cityTotal = STATE.data.cityTotal.registered;
+
+  document.getElementById("hdrBadge").textContent = d.councilMember;
+  document.getElementById("hdrBadge").style.background = DISTRICT_COLORS[i];
+  document.getElementById("focusTitle").textContent = `District ${i} — Snapshot`;
+
+  const card = document.getElementById("memberCard");
+  card.style.borderLeftColor = DISTRICT_COLORS[i];
+  card.style.background = `linear-gradient(180deg, ${hexToRgba(DISTRICT_COLORS[i], 0.08)}, #fff)`;
+  document.getElementById("avatar").textContent = d.councilMember.split(" ").map(s => s[0]).join("");
+  document.getElementById("avatar").style.background = DISTRICT_COLORS[i];
+  document.getElementById("memberName").textContent = d.councilMember;
+  document.getElementById("memberTitle").textContent = d.title || "Councilmember";
+  if (d.email) {
+    document.getElementById("memberContact").innerHTML =
+      `<a href="mailto:${d.email}">${d.email}</a> · ${d.phone || ""}`;
+  } else {
+    document.getElementById("memberContact").innerHTML =
+      `<a href="https://yucaipa.gov/yucaipa-redistricting/" target="_blank">Contact via city directory</a>`;
+  }
+
+  document.getElementById("kpiReg").textContent = fmt(d.registered);
+  document.getElementById("kpiRegDelta").textContent =
+    pctFmt(d.registered, cityTotal) + " of city";
+
+  setKpi("kpiRep", "Republican", d, "kpiRepDelta");
+  setKpi("kpiDem", "Democratic", d, "kpiDemDelta");
+  setKpi("kpiNpp", "No Party Preference", d, "kpiNppDelta");
+
+  document.querySelectorAll("#switchRow button").forEach(b =>
+    b.classList.toggle("active", +b.dataset.d === i));
+  document.querySelectorAll("#compareTable tbody tr").forEach(tr =>
+    tr.classList.toggle("active", +tr.dataset.d === i));
+
+  renderChart(d);
+}
+
+function setKpi(elId, party, district, deltaId) {
+  const dPct = pct(district.parties[party], district.registered);
+  const cyPct = pct(STATE.data.county.parties[party], STATE.data.county.registered);
+  document.getElementById(elId).textContent = dPct.toFixed(1) + "%";
+  const delta = dPct - cyPct;
+  const sign = delta >= 0 ? "+" : "";
+  document.getElementById(deltaId).textContent =
+    `${sign}${delta.toFixed(1)} pts vs county (${cyPct.toFixed(1)}%)`;
+}
+
+function renderChart(d) {
+  const order = STATE.data.partyOrder;
+  const dPcts = order.map(p => pct(d.parties[p], d.registered));
+  const cPcts = order.map(p => pct(STATE.data.county.parties[p], STATE.data.county.registered));
+  const ctx = document.getElementById("partyChart");
+  if (STATE.chart) STATE.chart.destroy();
+  STATE.chart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: order,
+      datasets: [
+        { label: "San Bernardino County", data: cPcts,
+          backgroundColor: "rgba(120,128,140,0.35)", borderColor: "rgba(120,128,140,0.6)",
+          borderWidth: 1, borderRadius: 4, categoryPercentage: 0.85, barPercentage: 1.0 },
+        { label: `District ${STATE.focus}`, data: dPcts,
+          backgroundColor: order.map(p => PARTY_COLORS[p] || "#888"),
+          borderRadius: 4, categoryPercentage: 0.85, barPercentage: 1.0 }
+      ]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { callback: v => v + "%" }, grid: { color: "#eef0f3" } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function hexToRgb(hex) {
+  const v = parseInt(hex.replace("#",""), 16);
+  return [(v>>16)&255, (v>>8)&255, v&255];
+}
+function hexToRgba(hex, a) {
+  const [r,g,b] = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+loadData();
+</script>
+</body>
+</html>

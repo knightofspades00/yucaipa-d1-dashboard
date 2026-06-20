@@ -1,0 +1,34 @@
+name: Refresh voter aggregates
+
+on:
+  schedule:
+    # SBC publishes the Weekly Report every Sunday — refresh Monday 14:00 UTC (07:00 PT)
+    - cron: '0 14 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install poppler (pdftotext)
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Refresh data
+        run: python parse_weekly.py
+      - name: Commit if changed
+        run: |
+          if [[ -n "$(git status --porcelain data/)" ]]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/d1_stats.json data/yucaipa_districts.geojson
+            git commit -m "data: weekly refresh ($(date -u +%Y-%m-%d))"
+            git push
+          else
+            echo "No data changes."
+          fi
