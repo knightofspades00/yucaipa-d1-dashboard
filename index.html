@@ -90,6 +90,7 @@
   .live-cta__title { font-weight: 600; font-size: 14px; }
   .live-cta__sub { font-size: 12px; color: #b8c2d5; margin-top: 2px; }
   .live-cta__icon { font-size: 28px; opacity: .65; }
+  .cta-grid { display: grid; gap: 10px; }
   .map-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
     padding: 10px 14px; border-bottom: 1px solid var(--line); background: #fafbfd; }
   .map-toolbar label { font-size: 12px; color: var(--muted); display: flex;
@@ -169,24 +170,38 @@
     </div>
 
     <div class="panel" style="margin-top:16px">
-      <h2>Live San Bernardino County data</h2>
+      <h2>Live San Bernardino County data (off-site)</h2>
       <p style="font-size:13px;color:var(--muted);margin:0 0 12px">
-        The County Registrar's official filterable dashboard blocks iframe embedding,
-        so it opens in a new tab. Below it, the County's
-        <em>Voter Registration Density Map</em> is embedded directly — it's the
-        closest live county view that allows framing.
+        The County Registrar's official dashboards block iframe embedding, so they
+        open in a new tab. The aggregates on the right of this page are a frozen
+        weekly snapshot — for always-current numbers, use these:
       </p>
-      <a href="https://elections.sbcounty.gov/voterregistration/dashboard/" target="_blank"
-         rel="noopener" class="live-cta">
-        <div>
-          <div class="live-cta__title">Open SBC Voter Registration Dashboard ↗</div>
-          <div class="live-cta__sub">Filter by party, district, and date range — pulled live from the County Registrar</div>
-        </div>
-        <div class="live-cta__icon" aria-hidden="true">↗</div>
-      </a>
-      <iframe class="lookup" style="height:540px;margin-top:14px"
-        title="SBC Voter Registration Density Map"
-        src="https://www.arcgis.com/apps/MapTools/index.html?appid=e78820cf228d4434b0eb1658b8ff1f62"></iframe>
+      <div class="cta-grid">
+        <a href="https://elections.sbcounty.gov/voterregistration/dashboard/" target="_blank"
+           rel="noopener" class="live-cta">
+          <div>
+            <div class="live-cta__title">Voter Registration Dashboard ↗</div>
+            <div class="live-cta__sub">Filter by party, district, and date range — live from the County Registrar</div>
+          </div>
+          <div class="live-cta__icon" aria-hidden="true">↗</div>
+        </a>
+        <a href="https://www.arcgis.com/apps/mapviewer/index.html?webmap=35fe2fdf195a489ab158df6b0340418e"
+           target="_blank" rel="noopener" class="live-cta">
+          <div>
+            <div class="live-cta__title">Elections Turnout Map ↗</div>
+            <div class="live-cta__sub">Past-election turnout by precinct, SB County Elections</div>
+          </div>
+          <div class="live-cta__icon" aria-hidden="true">↗</div>
+        </a>
+        <a href="https://www.sbcounty.gov/uploads/rov/DistrictSummary.pdf"
+           target="_blank" rel="noopener" class="live-cta">
+          <div>
+            <div class="live-cta__title">Weekly Report of Registration ↗</div>
+            <div class="live-cta__sub">PDF — source of the party splits shown here; refreshed Sundays</div>
+          </div>
+          <div class="live-cta__icon" aria-hidden="true">↗</div>
+        </a>
+      </div>
     </div>
 
     <div class="panel" style="margin-top:16px">
