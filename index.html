@@ -83,6 +83,13 @@
     background: #fff; border: 1px solid var(--line); }
   .privacy-note { background: #fff8e1; border: 1px solid #ffe082; padding: 10px 12px;
     border-radius: 8px; font-size: 12.5px; color: #5d4037; }
+  .live-cta { display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+    background: linear-gradient(180deg, #1a2a4f, var(--ink)); color: #fff;
+    border-radius: 10px; text-decoration: none; transition: transform .15s; }
+  .live-cta:hover { transform: translateY(-1px); }
+  .live-cta__title { font-weight: 600; font-size: 14px; }
+  .live-cta__sub { font-size: 12px; color: #b8c2d5; margin-top: 2px; }
+  .live-cta__icon { font-size: 28px; opacity: .65; }
   .map-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
     padding: 10px 14px; border-bottom: 1px solid var(--line); background: #fafbfd; }
   .map-toolbar label { font-size: 12px; color: var(--muted); display: flex;
@@ -162,15 +169,24 @@
     </div>
 
     <div class="panel" style="margin-top:16px">
-      <h2>Live San Bernardino County voter registration dashboard</h2>
-      <p style="font-size:13px;color:var(--muted);margin:0 0 10px">
-        Filter by party, district, and date range — pulled live from the County Registrar.
-        The aggregates on the right of this dashboard are a frozen weekly snapshot; this
-        embed is always current.
+      <h2>Live San Bernardino County data</h2>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 12px">
+        The County Registrar's official filterable dashboard blocks iframe embedding,
+        so it opens in a new tab. Below it, the County's
+        <em>Voter Registration Density Map</em> is embedded directly — it's the
+        closest live county view that allows framing.
       </p>
-      <iframe class="lookup" style="height:560px"
-        title="SBC Voter Registration Dashboard"
-        src="https://elections.sbcounty.gov/voterregistration/dashboard/"></iframe>
+      <a href="https://elections.sbcounty.gov/voterregistration/dashboard/" target="_blank"
+         rel="noopener" class="live-cta">
+        <div>
+          <div class="live-cta__title">Open SBC Voter Registration Dashboard ↗</div>
+          <div class="live-cta__sub">Filter by party, district, and date range — pulled live from the County Registrar</div>
+        </div>
+        <div class="live-cta__icon" aria-hidden="true">↗</div>
+      </a>
+      <iframe class="lookup" style="height:540px;margin-top:14px"
+        title="SBC Voter Registration Density Map"
+        src="https://www.arcgis.com/apps/MapTools/index.html?appid=e78820cf228d4434b0eb1658b8ff1f62"></iframe>
     </div>
 
     <div class="panel" style="margin-top:16px">
