@@ -416,12 +416,12 @@ require([
           renderer: {
             type: "simple",
             symbol: { type: "simple-fill", color: [0,0,0,0],
-              outline: { color: [40,40,40,0.55], width: 0.6, style: "dash" } }
+              outline: { color: [40,40,40,0.7], width: 0.7, style: "dash" } }
           },
-          popupTemplate: { title: "Precinct {PRECINCT}", content: "Abbrev: {ABRV_NAME}" },
-          minScale: 100000
+          popupTemplate: { title: "Precinct {PRECINCT}", content: "Abbrev: {ABRV_NAME}" }
+          // No minScale — Yucaipa is small enough that precincts are useful even at city-wide zoom.
         });
-        map.add(precinctLayer, 1);
+        map.add(precinctLayer);  // stack on top of districts so the dashed outlines stay visible
       } else { precinctLayer.visible = true; }
     } else if (precinctLayer) {
       precinctLayer.visible = false;
@@ -429,50 +429,75 @@ require([
   });
 
   // ---- ACS demographic overlay (dropdown) ----
-  // Each variant maps to a public Esri Living Atlas feature service (multi-scale tract/county/state).
-  // We pick the tract sublayer (index 2) for council-district context.
+  // Each entry maps to a public Esri Living Atlas feature service.
+  // Layer 2 = Census Tract sublayer in every one of these services.
+  // Field codes verified against each service's published schema, including
+  // Esri's pre-computed _calc_pct* fields so we don't need Arcade.
   const ACS = {
     income: {
       itemId: "45ede6d6ff7e4cbbbffa60d34227e462",
-      sublayer: 2,
-      field: "B19013_001E",
+      service: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/ACS_Median_Income_by_Race_and_Age_Selp_Emp_Boundaries/FeatureServer/2",
+      field: "B19049_001E",
       label: "Median household income (USD)",
-      stops: [[40000,"#fff5eb"],[60000,"#fdd0a2"],[80000,"#fdae6b"],[100000,"#e6550d"],[140000,"#a63603"]],
-      fmt: v => "$" + Math.round(v).toLocaleString()
+      stops: [
+        { max: 50000,  color: "#fff5eb", label: "< $50k" },
+        { max: 75000,  color: "#fdd0a2", label: "$50k – $75k" },
+        { max: 100000, color: "#fdae6b", label: "$75k – $100k" },
+        { max: 130000, color: "#e6550d", label: "$100k – $130k" },
+        { max: 1e9,    color: "#a63603", label: "$130k +" }
+      ]
     },
     age: {
       itemId: "d227d6a4ee3e4d2d87eb9843ee14dd87",
-      sublayer: 2,
+      service: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/ACS_Median_Age_Boundaries/FeatureServer/2",
       field: "B01002_001E",
       label: "Median age (years)",
-      stops: [[28,"#edf8fb"],[35,"#b2e2e2"],[42,"#66c2a4"],[48,"#2ca25f"],[56,"#006d2c"]],
-      fmt: v => v.toFixed(1) + " yrs"
+      stops: [
+        { max: 30, color: "#edf8fb", label: "< 30" },
+        { max: 35, color: "#b2e2e2", label: "30 – 35" },
+        { max: 40, color: "#66c2a4", label: "35 – 40" },
+        { max: 50, color: "#2ca25f", label: "40 – 50" },
+        { max: 99, color: "#006d2c", label: "50 +"  }
+      ]
     },
     hispanic: {
       itemId: "23ab8028f1784de4b0810104cd5d1c8f",
-      sublayer: 2,
-      field: "B03002_012E",
-      denom: "B03002_001E",
+      service: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/ACS_Population_by_Race_and_Hispanic_Origin_Boundaries/FeatureServer/2",
+      field: "B03002_calc_pctHispLatE",  // Esri pre-computed % Hispanic/Latino
       label: "% Hispanic / Latino population",
-      stops: [[10,"#f7f4f9"],[25,"#d4b9da"],[40,"#df65b0"],[60,"#dd1c77"],[80,"#980043"]],
-      fmt: v => v.toFixed(1) + "%"
+      stops: [
+        { max: 15, color: "#f7f4f9", label: "< 15%" },
+        { max: 30, color: "#d4b9da", label: "15 – 30%" },
+        { max: 50, color: "#df65b0", label: "30 – 50%" },
+        { max: 70, color: "#dd1c77", label: "50 – 70%" },
+        { max: 101, color: "#980043", label: "70%+" }
+      ]
     },
     bachelors: {
       itemId: "84e3022a376e41feb4dd8addf25835a3",
-      sublayer: 2,
-      label: "% adults with a bachelor's degree or higher",
-      computed: "bachelors",
-      stops: [[10,"#f7fcf5"],[20,"#c7e9c0"],[30,"#74c476"],[45,"#238b45"],[60,"#00441b"]],
-      fmt: v => v.toFixed(1) + "%"
+      service: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/ACS_Educational_Attainment_Boundaries/FeatureServer/2",
+      field: "B15002_calc_pctGEBAE",  // Esri pre-computed % Bachelor's or higher (pop 25+)
+      label: "% adults 25+ with a bachelor's degree or higher",
+      stops: [
+        { max: 10, color: "#f7fcf5", label: "< 10%" },
+        { max: 20, color: "#c7e9c0", label: "10 – 20%" },
+        { max: 30, color: "#74c476", label: "20 – 30%" },
+        { max: 45, color: "#238b45", label: "30 – 45%" },
+        { max: 101, color: "#00441b", label: "45%+" }
+      ]
     },
     poverty: {
       itemId: "0e468b75bca545ee8dc4b039cbb5aff6",
-      sublayer: 2,
-      field: "B17001_002E",
-      denom: "B17001_001E",
-      label: "% below the federal poverty line",
-      stops: [[5,"#fff7ec"],[10,"#fdd49e"],[20,"#fc8d59"],[30,"#d7301f"],[45,"#7f0000"]],
-      fmt: v => v.toFixed(1) + "%"
+      service: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/ACS_Poverty_by_Age_Boundaries/FeatureServer/2",
+      field: "B17020_calc_pctPovE",  // Esri pre-computed % below poverty line
+      label: "% population below the federal poverty line",
+      stops: [
+        { max: 5,   color: "#fff7ec", label: "< 5%" },
+        { max: 10,  color: "#fdd49e", label: "5 – 10%" },
+        { max: 20,  color: "#fc8d59", label: "10 – 20%" },
+        { max: 30,  color: "#d7301f", label: "20 – 30%" },
+        { max: 101, color: "#7f0000", label: "30%+" }
+      ]
     }
   };
 
@@ -486,64 +511,44 @@ require([
     if (!key) return;
     const cfg = ACS[key];
 
-    let renderer;
-    if (cfg.computed === "bachelors") {
-      // % Bachelor's or higher = (B15003_022+023+024+025) / B15003_001
-      renderer = {
-        type: "class-breaks",
-        valueExpression:
-          "var t = $feature.B15003_001E;" +
-          "IIf(t>0,(($feature.B15003_022E+$feature.B15003_023E+$feature.B15003_024E+$feature.B15003_025E)/t)*100,0)",
-        classBreakInfos: cfg.stops.map((s, i) => ({
-          minValue: i === 0 ? -Infinity : cfg.stops[i-1][0],
-          maxValue: s[0],
-          symbol: { type: "simple-fill", color: hexToRgba(s[1], 0.7),
-            outline: { color: [255,255,255,0.6], width: 0.4 } },
-          label: (i === 0 ? "< " : (cfg.stops[i-1][0] + " – ")) + s[0] + "%"
-        }))
-      };
-    } else if (cfg.denom) {
-      renderer = {
-        type: "class-breaks",
-        valueExpression: `IIf($feature.${cfg.denom}>0,($feature.${cfg.field}/$feature.${cfg.denom})*100,0)`,
-        classBreakInfos: cfg.stops.map((s, i) => ({
-          minValue: i === 0 ? -Infinity : cfg.stops[i-1][0],
-          maxValue: s[0],
-          symbol: { type: "simple-fill", color: hexToRgba(s[1], 0.7),
-            outline: { color: [255,255,255,0.6], width: 0.4 } },
-          label: (i === 0 ? "< " : (cfg.stops[i-1][0] + " – ")) + s[0] + "%"
-        }))
-      };
-    } else {
-      renderer = {
-        type: "class-breaks",
-        field: cfg.field,
-        classBreakInfos: cfg.stops.map((s, i) => ({
-          minValue: i === 0 ? -Infinity : cfg.stops[i-1][0],
-          maxValue: s[0],
-          symbol: { type: "simple-fill", color: hexToRgba(s[1], 0.7),
-            outline: { color: [255,255,255,0.6], width: 0.4 } },
-          label: cfg.fmt(s[0]) + " or less"
-        }))
-      };
-    }
+    const renderer = {
+      type: "class-breaks",
+      field: cfg.field,
+      defaultSymbol: { type: "simple-fill", color: [200,200,200,0.25],
+        outline: { color: [255,255,255,0.4], width: 0.3 } },
+      defaultLabel: "no data",
+      classBreakInfos: cfg.stops.map((s, i) => ({
+        minValue: i === 0 ? 0 : cfg.stops[i-1].max,
+        maxValue: s.max,
+        symbol: { type: "simple-fill", color: hexToRgba(s.color, 0.78),
+          outline: { color: [255,255,255,0.55], width: 0.4 } },
+        label: s.label
+      }))
+    };
 
     acsLayer = new FeatureLayer({
-      portalItem: { id: cfg.itemId },
-      layerId: cfg.sublayer,
+      url: cfg.service,
       renderer,
-      opacity: 0.65,
-      title: cfg.label
+      opacity: 0.7,
+      title: cfg.label,
+      popupTemplate: {
+        title: "{NAME}",
+        content: `<b>${cfg.label}:</b> {${cfg.field}}`
+      }
     });
     map.add(acsLayer, 0);
+    acsLayer.when(
+      () => console.log(`ACS layer "${key}" loaded`,
+                        { url: cfg.service, field: cfg.field }),
+      err => console.error(`ACS layer "${key}" failed:`, err && err.message)
+    );
 
     acsLegend.classList.add("show");
     acsLegend.innerHTML =
       `<strong style="color:var(--ink)">${cfg.label}:</strong>` +
-      `<div class="swatch-row">` +
-      cfg.stops.map(s => `<i style="background:${s[1]};border:1px solid #00000010" title="${cfg.fmt(s[0])}"></i>`).join("") +
-      `</div>` +
-      `<span>${cfg.fmt(cfg.stops[0][0])} → ${cfg.fmt(cfg.stops[cfg.stops.length-1][0])}+</span>` +
+      cfg.stops.map(s =>
+        `<span class="swatch" style="font-size:11px"><i style="background:${s.color};border:1px solid #00000010;width:18px;height:12px;display:inline-block"></i> ${s.label}</span>`
+      ).join("") +
       `<span style="margin-left:auto">Source: US Census ACS via Esri Living Atlas</span>`;
   });
 
