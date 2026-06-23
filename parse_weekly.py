@@ -16,7 +16,9 @@ ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
 DATA.mkdir(exist_ok=True)
 
-PDF_URL  = "https://www.sbcounty.gov/uploads/rov/DistrictSummary.pdf"
+# NOTE: the older www.sbcounty.gov/uploads/rov/DistrictSummary.pdf is a
+# snapshot frozen in Jan 2025. The current weekly file lives on uploads.rov.*
+PDF_URL  = "https://uploads.rov.sbcounty.gov/ROV/DistrictSummary.pdf"
 GEO_URL  = (
     "https://services.arcgis.com/aA3snZwJfFkVyDuP/arcgis/rest/services/"
     "City_of_Yucaipa_City_Council_Districts/FeatureServer/0/query"
@@ -30,13 +32,18 @@ PARTIES = [
     "American Independent", "Democratic", "Green", "Libertarian",
     "No Party Preference", "Other", "Peace and Freedom", "Republican",
 ]
+# Verified against yucaipa.gov/city-council, 2026-06.
 MEMBERS = {
     1: {"councilMember": "Bob Miller",    "title": "Councilmember",
-        "email": "bmiller@yucaipa.gov", "phone": "909-797-2489 ext. 501"},
-    2: {"councilMember": "Chris Venable", "title": "Mayor"},
-    3: {"councilMember": "Judy Woolsey",  "title": "Councilmember"},
-    4: {"councilMember": "Justin Beaver", "title": "Deputy Mayor"},
-    5: {"councilMember": "Jon Thorp",     "title": "Councilmember"},
+        "email": "bmiller@yucaipa.gov",  "phone": "909-797-2489 ext. 501"},
+    2: {"councilMember": "Chris Venable", "title": "Mayor",
+        "email": "cvenable@yucaipa.gov", "phone": "909-797-2489 ext. 502"},
+    3: {"councilMember": "Judy Woolsey",  "title": "Councilmember",
+        "email": "jwoolsey@yucaipa.gov", "phone": "909-797-2489 ext. 503"},
+    4: {"councilMember": "Justin Beaver", "title": "Deputy Mayor",
+        "email": "jbeaver@yucaipa.gov",  "phone": "909-797-2489 ext. 504"},
+    5: {"councilMember": "Jon Thorp",     "title": "Councilmember",
+        "email": "jthorp@yucaipa.gov",   "phone": "909-797-2489 ext. 505"},
 }
 
 
@@ -76,11 +83,27 @@ def extract_district_block(text: str, idx: int) -> dict:
 
 
 def extract_county(text: str) -> dict:
-    m = re.search(r"San Bernardino County\s+American Independent.*?District Total", text, re.S)
+    # The block we want is the county-wide summary that begins with
+    # "San Bernardino County" and ends at the first "TOTAL Registered Voters"
+    # header. After that header, the next 9 comma-formatted numbers are the
+    # party totals + district total, in PARTIES order.
+    #
+    # We require commas because (a) all county totals are >1,000, and
+    # (b) anchoring after the header alone still leaves "Board of Supervisors,
+    # District 1" in the way — its "1" was a false positive before.
+    m = re.search(r"San Bernardino County[\s\S]+?TOTAL Registered Voters", text)
     if not m:
         raise RuntimeError("County section not found")
-    counts = grab_counts(text[m.end():], 9)
-    return {"registered": counts[8], "parties": dict(zip(PARTIES, counts[:8]))}
+    block = text[m.end(): m.end() + 2000]
+    nums = re.findall(r"\b\d{1,3}(?:,\d{3})+\b", block)
+    if len(nums) < 9:
+        raise RuntimeError(f"County block parsed only {len(nums)} numbers, expected ≥9")
+    counts = [int(n.replace(",", "")) for n in nums[:9]]
+    parties = dict(zip(PARTIES, counts[:8]))
+    total = counts[8]
+    if sum(parties.values()) != total:
+        print(f"  warn: county party sum {sum(parties.values()):,} != total {total:,}")
+    return {"registered": total, "parties": parties}
 
 
 def extract_report_date(text: str) -> str:

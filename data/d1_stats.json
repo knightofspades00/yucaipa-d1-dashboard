@@ -1,7 +1,7 @@
 {
-  "reportDate": "2025-01-12",
+  "reportDate": "2026-06-21",
   "source": "San Bernardino County Weekly Report of Registration",
-  "sourceUrl": "https://www.sbcounty.gov/uploads/rov/DistrictSummary.pdf",
+  "sourceUrl": "https://uploads.rov.sbcounty.gov/ROV/DistrictSummary.pdf",
   "precinctExportSource": "https://uploads.rov.sbcounty.gov/ROV/PrecinctDistrictExport.zip",
   "partyOrder": [
     "Republican",
@@ -15,107 +15,115 @@
   ],
   "districts": {
     "1": {
+      "registered": 7974,
+      "parties": {
+        "American Independent": 442,
+        "Democratic": 1799,
+        "Green": 23,
+        "Libertarian": 104,
+        "No Party Preference": 1368,
+        "Other": 63,
+        "Peace and Freedom": 33,
+        "Republican": 4142
+      },
       "councilMember": "Bob Miller",
       "title": "Councilmember",
       "email": "bmiller@yucaipa.gov",
-      "phone": "909-797-2489 ext. 501",
-      "registered": 7808,
-      "parties": {
-        "American Independent": 412,
-        "Democratic": 1762,
-        "Green": 16,
-        "Libertarian": 107,
-        "No Party Preference": 1323,
-        "Other": 75,
-        "Peace and Freedom": 24,
-        "Republican": 4089
-      }
+      "phone": "909-797-2489 ext. 501"
     },
     "2": {
+      "registered": 7437,
+      "parties": {
+        "American Independent": 462,
+        "Democratic": 1866,
+        "Green": 33,
+        "Libertarian": 102,
+        "No Party Preference": 1384,
+        "Other": 73,
+        "Peace and Freedom": 37,
+        "Republican": 3480
+      },
       "councilMember": "Chris Venable",
       "title": "Mayor",
-      "registered": 7388,
-      "parties": {
-        "American Independent": 427,
-        "Democratic": 1900,
-        "Green": 28,
-        "Libertarian": 113,
-        "No Party Preference": 1335,
-        "Other": 81,
-        "Peace and Freedom": 41,
-        "Republican": 3463
-      }
+      "email": "cvenable@yucaipa.gov",
+      "phone": "909-797-2489 ext. 502"
     },
     "3": {
+      "registered": 6308,
+      "parties": {
+        "American Independent": 413,
+        "Democratic": 1804,
+        "Green": 25,
+        "Libertarian": 101,
+        "No Party Preference": 1234,
+        "Other": 75,
+        "Peace and Freedom": 41,
+        "Republican": 2615
+      },
       "councilMember": "Judy Woolsey",
       "title": "Councilmember",
-      "registered": 6275,
-      "parties": {
-        "American Independent": 399,
-        "Democratic": 1852,
-        "Green": 31,
-        "Libertarian": 88,
-        "No Party Preference": 1184,
-        "Other": 78,
-        "Peace and Freedom": 49,
-        "Republican": 2594
-      }
+      "email": "jwoolsey@yucaipa.gov",
+      "phone": "909-797-2489 ext. 503"
     },
     "4": {
+      "registered": 7064,
+      "parties": {
+        "American Independent": 441,
+        "Democratic": 1736,
+        "Green": 16,
+        "Libertarian": 97,
+        "No Party Preference": 1229,
+        "Other": 67,
+        "Peace and Freedom": 28,
+        "Republican": 3450
+      },
       "councilMember": "Justin Beaver",
       "title": "Deputy Mayor",
-      "registered": 7006,
-      "parties": {
-        "American Independent": 440,
-        "Democratic": 1734,
-        "Green": 18,
-        "Libertarian": 87,
-        "No Party Preference": 1189,
-        "Other": 73,
-        "Peace and Freedom": 31,
-        "Republican": 3434
-      }
+      "email": "jbeaver@yucaipa.gov",
+      "phone": "909-797-2489 ext. 504"
     },
     "5": {
-      "councilMember": "Jon Thorp",
-      "title": "Councilmember",
-      "registered": 7607,
+      "registered": 7678,
       "parties": {
-        "American Independent": 431,
-        "Democratic": 1643,
-        "Green": 30,
+        "American Independent": 497,
+        "Democratic": 1627,
+        "Green": 26,
         "Libertarian": 106,
         "No Party Preference": 1255,
-        "Other": 55,
-        "Peace and Freedom": 26,
-        "Republican": 4061
-      }
+        "Other": 58,
+        "Peace and Freedom": 34,
+        "Republican": 4075
+      },
+      "councilMember": "Jon Thorp",
+      "title": "Councilmember",
+      "email": "jthorp@yucaipa.gov",
+      "phone": "909-797-2489 ext. 505"
     }
   },
   "cityTotal": {
-    "registered": 36084,
+    "registered": 36461,
     "parties": {
-      "American Independent": 2109,
-      "Democratic": 8891,
+      "American Independent": 2255,
+      "Democratic": 8832,
       "Green": 123,
-      "Libertarian": 501,
-      "No Party Preference": 6286,
-      "Other": 362,
-      "Peace and Freedom": 171,
-      "Republican": 17641
+      "Libertarian": 510,
+      "No Party Preference": 6470,
+      "Other": 336,
+      "Peace and Freedom": 173,
+      "Republican": 17762
     }
   },
   "county": {
-    "registered": 1219203,
+    "registered": 1235843,
     "parties": {
-      "American Independent": 58712,
-      "Democratic": 475357,
-      "Green": 5056,
-      "Libertarian": 13389,
-      "No Party Preference": 263115,
-      "Other": 17740,
-      "Peace and Freedom": 9818,
-      "Republican": 376016
+      "American Independent": 62691,
+      "Democratic": 478239,
+      "Green": 5307,
+      "Libertarian": 13158,
+      "No Party Preference": 273837,
+      "Other": 15211,
+      "Peace and Freedom": 10701,
+      "Republican": 376699
     }
   }
 }
